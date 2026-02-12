@@ -1,135 +1,101 @@
-# escrow-smart-contract
-# Escrow-Based Peer Payments 
+# CampusChain 🎓⛓️
 
-A decentralized escrow smart contract built using Solidity to eliminate fraud in peer-to-peer payments.
+> Programmable Campus Wallet System on Algorand Testnet
 
-##  Problem Statement
+A hackathon MVP that gives students a blockchain-powered campus wallet.
+Parents fund it, students spend at vendors, and parents see **only aggregated
+spending by category** — never individual transactions.
 
-In peer-to-peer payments (especially on campuses), users send money for:
+## Architecture
 
-- Second-hand books
-- Notes
-- Freelance work
-- Small services
+See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the full design document.
 
-There is **no trust guarantee**.
+```
+contracts/       → PyTeal smart contracts + ASA creation
+backend/         → Flask API (funding, payments, privacy-preserving aggregation)
+frontend/        → (React app — scaffold separately)
+```
 
-- Sender may not receive service.
-- Receiver may not get paid after completing work.
-- UPI offers no escrow protection.
-- Chargebacks and fraud are common.
-- 
-##  Solution
+## Quick Start
 
-A blockchain-based escrow smart contract that:
+### 1. Prerequisites
 
-1. Locks funds when sender deposits.
-2. Releases payment only after confirmation.
-3. Automatically releases after deadline.
-4. Supports dispute resolution via neutral arbiter.
+- Python 3.10+
+- An Algorand Testnet account funded via [faucet](https://bank.testnet.algorand.network/)
 
-This replaces traditional UPI trust with **trustless smart contract logic**.
+### 2. Install
 
-##  Features
+```bash
+pip install -r backend/requirements.txt
+```
 
--  Funds locked inside smart contract
-- Deadline-based auto release
-- Dispute raising by either party
--  Arbiter-based resolution
--  No admin control over funds
--  Transparent on-chain logic
+### 3. Configure
 
+```bash
+cp .env.example .env
+# Edit .env with your admin mnemonic
+```
 
+### 4. Create CampusToken (ASA)
 
-##  Smart Contract Architecture
+```bash
+python contracts/create_asa.py
+```
 
-Flow:
+### 5. Compile & Deploy CampusVault
 
-Deposit → Task Completion → 
-(Confirm OR AutoRelease OR Dispute)
+```bash
+python contracts/campus_vault.py    # Compiles PyTeal → TEAL
+python contracts/deploy.py          # Deploys app + bootstraps
+```
 
-If Dispute:
-Arbiter decides winner → Funds transferred accordingly.
+### 6. Run Backend
 
----
+```bash
+cd backend
+python app.py
+```
 
-##  Contract Functions
+Server runs at `http://localhost:5000`.
 
-### createEscrow(address receiver, uint duration)
-Sender deposits ETH and sets deadline.
+## API Endpoints
 
-### confirmDelivery(uint escrowId)
-Sender releases payment to receiver.
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/register` | POST | — | Register (generates Algo wallet) |
+| `/api/auth/login` | POST | — | Login → JWT |
+| `/api/student/balance` | GET | Student | CampusToken balance |
+| `/api/student/pay` | POST | Student | Pay vendor (category-tagged) |
+| `/api/parent/fund` | POST | Parent | Simulate UPI → mint tokens |
+| `/api/parent/spending` | GET | Parent | **Aggregated** spending only |
+| `/api/vendor/register` | POST | Vendor | Register + set category |
+| `/api/vendor/qr` | GET | Vendor | Payment QR data |
 
-### refund(uint escrowId)
-Sender cancels before release.
+## Privacy Model
 
-### raiseDispute(uint escrowId)
-Either party can raise dispute.
+Parents see:
+- ✅ Total monthly spending
+- ✅ Spending per category (food, events, stationery)
+- ✅ Remaining balance
 
-### resolveDispute(uint escrowId, bool releaseToReceiver)
-Arbiter resolves dispute.
+Parents do NOT see:
+- ❌ Individual transactions
+- ❌ Merchant names
+- ❌ Timestamps / time-level details
 
-### autoRelease(uint escrowId)
-Automatically releases funds after deadline.
-
----
+This is enforced by the **backend aggregation layer** — see `ARCHITECTURE.md` §5.
 
 ## Tech Stack
 
-- Solidity ^0.8.19
-- Hardhat
-- Ethereum (EVM Compatible)
+| Layer | Tech |
+|-------|------|
+| Blockchain | Algorand Testnet |
+| Smart Contracts | PyTeal (TEAL v8) |
+| Token | ASA (CampusToken) |
+| Backend | Python, Flask, py-algorand-sdk |
+| Database | SQLite |
+| Auth | JWT |
 
+## Team
 
-##  How To Run Locally
-
-### 1. Install Dependencies
-npm install
-
-### 2. Compile Contract
-npx hardhat compile
-
-### 3. Run Local Node
-npx hardhat node
-
-### 4. Deploy Contract
-npx hardhat run scripts/deploy.js --network localhost
-
----
-
-##  Testing via Remix
-
-1. Go to https://remix.ethereum.org
-2. Paste contract in new file.
-3. Compile with Solidity 0.8.19
-4. Deploy using JavaScript VM.
-5. Test escrow lifecycle.
-
-##  Real-World Use Cases
-
-- Campus freelancing
-- Digital marketplace
-- Peer tutoring payments
-- Small business services
-- Online second-hand marketplaces
-
-##  Future Improvements
-
-- DAO-based arbitration
-- Multi-signature dispute resolution
-- ERC20 token support
-- Reputation system
-- Frontend DApp (React + MetaMask)
-- Deployment on Polygon
-
----
-
-##  Authors
-
-Akshat Tripathi 
-Ameya Morgaonkar
-Arnav Jakate
-Ayush Andure
-
-
+Akshat Tripathi · Ameya Morgaonkar · Arnav Jakate · Ayush Andure
