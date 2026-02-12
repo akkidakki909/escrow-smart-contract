@@ -85,6 +85,17 @@ export default function StudentDashboard() {
                             </div>
                         </div>
 
+                        {/* Canteen CTA */}
+                        <div className="card canteen-cta" onClick={() => router.push('/student/canteen')} style={{ cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h2 style={{ marginBottom: '0.3rem' }}>🍽️ Campus Canteen</h2>
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Browse the menu, order food, and pay with your CampusTokens</p>
+                                </div>
+                                <span style={{ fontSize: '2rem' }}>→</span>
+                            </div>
+                        </div>
+
                         {/* Category Breakdown */}
                         <div className="card">
                             <h2>📊 My Spending — {summary.month}</h2>

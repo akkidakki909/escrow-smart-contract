@@ -172,7 +172,7 @@ export default function ParentDashboard() {
 
                         {/* Fund Card */}
                         <div className="card">
-                            <h2>💰 Add Funds (Simulated UPI)</h2>
+                            <h2>Add Funds</h2>
                             <form onSubmit={handleFund} style={{ display: 'flex', gap: '0.8rem', alignItems: 'end' }}>
                                 <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                                     <label>Amount (₹)</label>

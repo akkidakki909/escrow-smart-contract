@@ -16,6 +16,7 @@ from routes.student import student_bp
 from routes.parent import parent_bp
 from routes.vendor import vendor_bp
 from routes.admin import admin_bp
+from routes.canteen import canteen_bp
 
 
 def create_app():
@@ -32,6 +33,7 @@ def create_app():
     app.register_blueprint(parent_bp)
     app.register_blueprint(vendor_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(canteen_bp)
 
     # Initialize database
     init_db()

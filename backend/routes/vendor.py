@@ -206,3 +206,62 @@ def vendor_balance():
 
     bal = get_token_balance(user["algo_address"])
     return jsonify({"balance": bal})
+
+
+@vendor_bp.route("/orders", methods=["GET"])
+@jwt_required()
+def vendor_orders():
+    """
+    Get incoming orders for this vendor (canteen feed).
+    Vendors see WHO ordered WHAT so they can prepare the food.
+    No acceptance needed — orders are auto-processed.
+    """
+    claims = get_jwt()
+    if claims.get("role") != "vendor":
+        return jsonify({"error": "Vendor access only"}), 403
+
+    user_id = get_jwt_identity()
+    db = get_db()
+
+    vendor = db.execute(
+        "SELECT id FROM vendors WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    if not vendor:
+        db.close()
+        return jsonify({"error": "Vendor not registered"}), 404
+
+    orders = db.execute(
+        """SELECT o.id, o.total_amount, o.txn_id, o.status, o.created_at,
+                  u.username as student_name
+           FROM orders o
+           JOIN users u ON o.student_id = u.id
+           WHERE o.vendor_id = ?
+           ORDER BY o.created_at DESC LIMIT 50""",
+        (vendor["id"],),
+    ).fetchall()
+
+    result = []
+    for o in orders:
+        items = db.execute(
+            """SELECT oi.quantity, oi.price, mi.name, mi.emoji
+               FROM order_items oi
+               JOIN menu_items mi ON oi.menu_item_id = mi.id
+               WHERE oi.order_id = ?""",
+            (o["id"],),
+        ).fetchall()
+
+        result.append({
+            "id": o["id"],
+            "student": o["student_name"],
+            "total": o["total_amount"],
+            "txn_id": o["txn_id"],
+            "status": o["status"],
+            "time": o["created_at"],
+            "items": [
+                {"name": i["name"], "emoji": i["emoji"], "qty": i["quantity"], "price": i["price"]}
+                for i in items
+            ],
+        })
+
+    db.close()
+    return jsonify({"orders": result})

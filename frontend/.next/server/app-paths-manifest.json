@@ -1,5 +1,8 @@
 {
-  "/parent/page": "app/parent/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/vendor/page": "app/vendor/page.js",
+  "/student/canteen/page": "app/student/canteen/page.js",
   "/student/page": "app/student/page.js",
-  "/page": "app/page.js"
+  "/parent/page": "app/parent/page.js"
 }

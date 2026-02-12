@@ -4,10 +4,28 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getUser, clearAuth } from '@/lib/api';
 
+interface OrderItem {
+    name: string;
+    emoji: string;
+    qty: number;
+    price: number;
+}
+
+interface Order {
+    id: number;
+    student: string;
+    total: number;
+    txn_id: string;
+    status: string;
+    time: string;
+    items: OrderItem[];
+}
+
 export default function VendorDashboard() {
     const router = useRouter();
     const [registered, setRegistered] = useState(false);
     const [balance, setBalance] = useState(0);
+    const [orders, setOrders] = useState<Order[]>([]);
 
     // Registration form
     const [regName, setRegName] = useState('');
@@ -37,6 +55,7 @@ export default function VendorDashboard() {
             await api('/vendor/qr');
             setRegistered(true);
             loadBalance();
+            loadOrders();
         } catch {
             setRegistered(false);
         }
@@ -46,6 +65,13 @@ export default function VendorDashboard() {
         try {
             const res = await api('/vendor/balance');
             setBalance(res.balance);
+        } catch { }
+    };
+
+    const loadOrders = async () => {
+        try {
+            const res = await api('/vendor/orders');
+            setOrders(res.orders);
         } catch { }
     };
 
@@ -61,6 +87,7 @@ export default function VendorDashboard() {
             setRegistered(true);
             setMsg('Vendor registered successfully!');
             loadBalance();
+            loadOrders();
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -74,7 +101,7 @@ export default function VendorDashboard() {
         setMsg('');
         setError('');
         try {
-            const res = await api('/vendor/pay', {
+            await api('/vendor/pay', {
                 method: 'POST',
                 body: JSON.stringify({
                     student_id: parseInt(studentId),
@@ -86,6 +113,7 @@ export default function VendorDashboard() {
             setStudentId('');
             setAmount('');
             loadBalance();
+            loadOrders();
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -142,10 +170,57 @@ export default function VendorDashboard() {
                                 <div className="value" style={{ color: 'var(--green)' }}>₹{balance}</div>
                                 <div className="label">Tokens Received</div>
                             </div>
+                            <div className="stat-card">
+                                <div className="value">{orders.length}</div>
+                                <div className="label">Total Orders</div>
+                            </div>
                         </div>
 
+                        {/* Incoming Orders Feed */}
                         <div className="card">
-                            <h2>💳 Accept Payment</h2>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                <h2 style={{ marginBottom: 0 }}>📋 Incoming Orders</h2>
+                                <button className="btn btn-secondary btn-sm" onClick={loadOrders}>↻ Refresh</button>
+                            </div>
+
+                            {orders.length === 0 ? (
+                                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>
+                                    No orders yet. Students can order from the canteen menu.
+                                </p>
+                            ) : (
+                                <ul className="vendor-order-list">
+                                    {orders.map(o => (
+                                        <li className="vendor-order-item" key={o.id}>
+                                            <div className="vendor-order-header">
+                                                <div>
+                                                    <span className="vendor-order-id">Order #{o.id}</span>
+                                                    <span className="vendor-order-student">👤 {o.student}</span>
+                                                </div>
+                                                <div className="vendor-order-total">₹{o.total}</div>
+                                            </div>
+                                            <div className="vendor-order-items">
+                                                {o.items.map((item, idx) => (
+                                                    <span className="vendor-order-chip" key={idx}>
+                                                        {item.emoji} {item.name} {item.qty > 1 ? `×${item.qty}` : ''}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <div className="vendor-order-time">
+                                                {new Date(o.time).toLocaleString()}
+                                                <span className="vendor-order-status">✅ Paid</span>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* Manual payment (for non-canteen purchases) */}
+                        <div className="card">
+                            <h2>💳 Manual Payment</h2>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1rem' }}>
+                                For walk-up purchases not through the canteen menu.
+                            </p>
                             <form onSubmit={handlePayment}>
                                 <div className="form-group">
                                     <label>Student ID</label>

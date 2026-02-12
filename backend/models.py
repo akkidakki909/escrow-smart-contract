@@ -76,7 +76,60 @@ def init_db():
             txn_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Canteen menu items (pre-seeded)
+        CREATE TABLE IF NOT EXISTS menu_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            category TEXT NOT NULL CHECK(category IN ('food', 'beverages', 'snacks')),
+            emoji TEXT NOT NULL DEFAULT '🍽️',
+            available INTEGER NOT NULL DEFAULT 1
+        );
+
+        -- Student orders
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL REFERENCES users(id),
+            vendor_id INTEGER REFERENCES vendors(id),
+            total_amount INTEGER NOT NULL,
+            txn_id TEXT,
+            status TEXT NOT NULL DEFAULT 'completed',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Line items per order
+        CREATE TABLE IF NOT EXISTS order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL REFERENCES orders(id),
+            menu_item_id INTEGER NOT NULL REFERENCES menu_items(id),
+            quantity INTEGER NOT NULL DEFAULT 1,
+            price INTEGER NOT NULL
+        );
     """)
+
+    # Seed canteen menu items (only if table is empty)
+    existing = conn.execute("SELECT COUNT(*) as c FROM menu_items").fetchone()
+    if existing["c"] == 0:
+        menu_items = [
+            ("Samosa", 15, "snacks", "🥟"),
+            ("Vada Pav", 20, "snacks", "🍔"),
+            ("Masala Dosa", 45, "food", "🥞"),
+            ("Paneer Roll", 50, "food", "🌯"),
+            ("Chicken Biryani", 90, "food", "🍛"),
+            ("Veg Thali", 70, "food", "🍱"),
+            ("Chai", 10, "beverages", "☕"),
+            ("Cold Coffee", 40, "beverages", "🧋"),
+            ("Fresh Lime Soda", 25, "beverages", "🍋"),
+            ("Maggi", 30, "snacks", "🍜"),
+            ("French Fries", 35, "snacks", "🍟"),
+            ("Sandwich", 40, "food", "🥪"),
+        ]
+        conn.executemany(
+            "INSERT INTO menu_items (name, price, category, emoji) VALUES (?, ?, ?, ?)",
+            menu_items,
+        )
+
     conn.commit()
     conn.close()
     print("Database initialized.")

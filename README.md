@@ -1,4 +1,4 @@
-# CampusChain 
+<!-- # CampusChain 
 
 > Programmable Campus Wallet System on Algorand Testnet — **Custodial Model**
 
@@ -103,4 +103,4 @@ This is enforced by the **backend aggregation layer** — see `ARCHITECTURE.md` 
 
 ## Team
 
-Akshat Tripathi · Ameya Morgaonkar · Arnav Jakate · Ayush Andure
+Akshat Tripathi · Ameya Morgaonkar · Arnav Jakate · Ayush Andure -->
