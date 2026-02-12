@@ -1,5 +1,8 @@
 """
-CampusChain Backend — Flask Application Entry Point
+CampusChain Backend — Flask Application Entry Point (Custodial)
+
+No indexer thread needed — spending is aggregated at payment time
+in the /vendor/pay route, not by polling the blockchain.
 """
 
 from flask import Flask
@@ -12,7 +15,7 @@ from routes.auth import auth_bp
 from routes.student import student_bp
 from routes.parent import parent_bp
 from routes.vendor import vendor_bp
-from services.indexer_service import start_indexer_thread
+from routes.admin import admin_bp
 
 
 def create_app():
@@ -28,16 +31,14 @@ def create_app():
     app.register_blueprint(student_bp)
     app.register_blueprint(parent_bp)
     app.register_blueprint(vendor_bp)
+    app.register_blueprint(admin_bp)
 
     # Initialize database
     init_db()
 
-    # Start the spending indexer background thread
-    start_indexer_thread(interval=30)
-
     @app.route("/")
     def health():
-        return {"status": "ok", "service": "CampusChain API"}
+        return {"status": "ok", "service": "CampusChain API (Custodial)"}
 
     return app
 

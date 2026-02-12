@@ -1,18 +1,19 @@
 """
-Parent Routes — Fund Student & View Aggregated Spending
+Parent Routes — Fund Student & View Aggregated Spending (Custodial)
 
-THIS IS THE PRIVACY-CRITICAL ROUTE FILE.
-The /spending endpoint returns ONLY aggregated data — no individual
-transactions, merchant names, or timestamps.
+PRIVACY: Parents NEVER see individual transactions, vendor names, or timestamps.
+CUSTODIAL: Parents don't need any wallet or crypto. They click "Fund" and the
+           backend signs everything.
 """
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+from datetime import datetime
 
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from models import get_db
-from services.algorand_service import fund_student_direct, get_token_balance
+from services.algorand_service import fund_student, get_token_balance
 
 parent_bp = Blueprint("parent", __name__, url_prefix="/api/parent")
 
@@ -21,8 +22,14 @@ parent_bp = Blueprint("parent", __name__, url_prefix="/api/parent")
 @jwt_required()
 def fund():
     """
-    Fund a student's wallet (simulated UPI → mint tokens).
+    Fund a student's wallet (simulated UPI → backend mints tokens).
     Body: { student_id, amount }
+
+    The parent clicks a button. The backend:
+    1. Simulates UPI success
+    2. Signs an ASA transfer from admin → student using admin mnemonic
+    3. Logs the funding
+    NO wallet connection required from the parent.
     """
     claims = get_jwt()
     if claims.get("role") != "parent":
@@ -47,7 +54,6 @@ def fund():
         db.close()
         return jsonify({"error": "Student not linked to this parent"}), 403
 
-    # Get student's algo address
     student = db.execute(
         "SELECT algo_address FROM users WHERE id = ? AND role = 'student'",
         (student_id,),
@@ -57,10 +63,8 @@ def fund():
         return jsonify({"error": "Student wallet not found"}), 404
 
     try:
-        # Simulate UPI payment success, then mint tokens
-        tx_id = fund_student_direct(student["algo_address"], amount)
+        tx_id = fund_student(student["algo_address"], amount)
 
-        # Log the funding
         db.execute(
             "INSERT INTO funding_log (parent_id, student_id, amount, txn_id) VALUES (?, ?, ?, ?)",
             (parent_id, student_id, amount, tx_id),
@@ -71,7 +75,6 @@ def fund():
         return jsonify({
             "message": f"Successfully funded ₹{amount}",
             "tokens_sent": amount,
-            "txn_id": tx_id,
         })
     except Exception as e:
         db.close()
@@ -83,11 +86,10 @@ def fund():
 def spending():
     """
     Get aggregated spending for the parent's linked student(s).
-
     Query params: student_id, month (YYYY-MM)
 
     PRIVACY: Returns ONLY totals and per-category breakdowns.
-    Does NOT return individual transactions, vendor names, or timestamps.
+    Does NOT return: individual transactions, vendor names, timestamps.
     """
     claims = get_jwt()
     if claims.get("role") != "parent":
@@ -95,11 +97,10 @@ def spending():
 
     parent_id = get_jwt_identity()
     student_id = request.args.get("student_id")
-    month = request.args.get("month")  # e.g. "2026-02"
+    month = request.args.get("month", datetime.utcnow().strftime("%Y-%m"))
 
     db = get_db()
 
-    # Verify relationship
     relation = db.execute(
         "SELECT 1 FROM parent_student WHERE parent_id = ? AND student_id = ?",
         (parent_id, student_id),
@@ -108,7 +109,6 @@ def spending():
         db.close()
         return jsonify({"error": "Student not linked to this parent"}), 403
 
-    # Get student info
     student = db.execute(
         "SELECT username, algo_address FROM users WHERE id = ?", (student_id,)
     ).fetchone()
@@ -116,13 +116,12 @@ def spending():
         db.close()
         return jsonify({"error": "Student not found"}), 404
 
-    # Get aggregated spending
+    # Aggregated spending from DB (written at payment time)
     rows = db.execute(
         "SELECT category, amount FROM category_spending WHERE student_id = ? AND month = ?",
         (student_id, month),
     ).fetchall()
 
-    # Get total funded this month
     funded = db.execute(
         """SELECT COALESCE(SUM(amount), 0) as total FROM funding_log
            WHERE student_id = ? AND strftime('%Y-%m', created_at) = ?""",
@@ -130,13 +129,12 @@ def spending():
     ).fetchone()
     db.close()
 
-    breakdown = {}
+    breakdown = {"food": 0, "events": 0, "stationery": 0}
     total_spent = 0
     for row in rows:
         breakdown[row["category"]] = row["amount"]
         total_spent += row["amount"]
 
-    # Get current balance from blockchain
     balance = get_token_balance(student["algo_address"]) if student["algo_address"] else 0
 
     return jsonify({
@@ -146,5 +144,28 @@ def spending():
         "total_spent": total_spent,
         "balance": balance,
         "breakdown": breakdown,
-        # NOTE: No transaction list, no vendor names, no timestamps
+        # INTENTIONALLY NO: transaction list, vendor names, timestamps
+    })
+
+
+@parent_bp.route("/students", methods=["GET"])
+@jwt_required()
+def get_students():
+    """Get list of linked students for this parent."""
+    claims = get_jwt()
+    if claims.get("role") != "parent":
+        return jsonify({"error": "Parent access only"}), 403
+
+    parent_id = get_jwt_identity()
+    db = get_db()
+    rows = db.execute(
+        """SELECT u.id, u.username FROM users u
+           JOIN parent_student ps ON u.id = ps.student_id
+           WHERE ps.parent_id = ?""",
+        (parent_id,),
+    ).fetchall()
+    db.close()
+
+    return jsonify({
+        "students": [{"id": r["id"], "name": r["username"]} for r in rows]
     })

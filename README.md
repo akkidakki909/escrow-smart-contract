@@ -1,98 +1,88 @@
 # CampusChain 🎓⛓️
 
-> Programmable Campus Wallet System on Algorand Testnet
+> Programmable Campus Wallet System on Algorand Testnet — **Custodial Model**
 
-A hackathon MVP that gives students a blockchain-powered campus wallet.
-Parents fund it, students spend at vendors, and parents see **only aggregated
-spending by category** — never individual transactions.
+A hackathon MVP where students spend tokens at campus vendors and parents
+see **only aggregated spending by category** — no crypto wallet required for anyone.
 
 ## Architecture
 
 See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for the full design document.
 
-```
-contracts/       → PyTeal smart contracts + ASA creation
-backend/         → Flask API (funding, payments, privacy-preserving aggregation)
-frontend/        → (React app — scaffold separately)
-```
-
 ## Quick Start
 
-### 1. Prerequisites
-
+### Prerequisites
 - Python 3.10+
+- Node.js 18+
 - An Algorand Testnet account funded via [faucet](https://bank.testnet.algorand.network/)
 
-### 2. Install
-
-```bash
-pip install -r backend/requirements.txt
-```
-
-### 3. Configure
+### 1. Setup
 
 ```bash
 cp .env.example .env
-# Edit .env with your admin mnemonic
+# Edit .env — add your funded admin mnemonic, ASA_ID after creation
+pip install -r backend/requirements.txt
+cd frontend && npm install && cd ..
 ```
 
-### 4. Create CampusToken (ASA)
+### 2. Create CampusToken ASA
 
 ```bash
 python contracts/create_asa.py
+# Copy the ASA ID into .env as ASA_ID=...
 ```
 
-### 5. Compile & Deploy CampusVault
-
-```bash
-python contracts/campus_vault.py    # Compiles PyTeal → TEAL
-python contracts/deploy.py          # Deploys app + bootstraps
-```
-
-### 6. Run Backend
+### 3. Run Backend
 
 ```bash
 cd backend
 python app.py
 ```
 
-Server runs at `http://localhost:5000`.
+### 4. Run Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open `http://localhost:3000` → Register → Login → Dashboard.
+
+## Custodial Model
+
+**No user needs crypto.** The backend:
+1. Creates Algorand wallets silently during registration
+2. Stores private keys (mnemonics) server-side in the database
+3. Signs every transaction (fund, spend) on behalf of users
+4. Parents only click "Fund ₹500" — no wallet connect, no MetaMask, nothing
+
+## Privacy Model
+
+Parents see: ✅ Balance, ✅ Monthly total, ✅ Per-category breakdown
+
+Parents don't see: ❌ Individual transactions, ❌ Merchant names, ❌ Timestamps
 
 ## API Endpoints
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/auth/register` | POST | — | Register (generates Algo wallet) |
+| `/api/auth/register` | POST | — | Register (auto wallet) |
 | `/api/auth/login` | POST | — | Login → JWT |
-| `/api/student/balance` | GET | Student | CampusToken balance |
-| `/api/student/pay` | POST | Student | Pay vendor (category-tagged) |
-| `/api/parent/fund` | POST | Parent | Simulate UPI → mint tokens |
-| `/api/parent/spending` | GET | Parent | **Aggregated** spending only |
-| `/api/vendor/register` | POST | Vendor | Register + set category |
-| `/api/vendor/qr` | GET | Vendor | Payment QR data |
-
-## Privacy Model
-
-Parents see:
-- ✅ Total monthly spending
-- ✅ Spending per category (food, events, stationery)
-- ✅ Remaining balance
-
-Parents do NOT see:
-- ❌ Individual transactions
-- ❌ Merchant names
-- ❌ Timestamps / time-level details
-
-This is enforced by the **backend aggregation layer** — see `ARCHITECTURE.md` §5.
+| `/api/parent/fund` | POST | Parent | Fund student |
+| `/api/parent/spending` | GET | Parent | Aggregated only |
+| `/api/student/summary` | GET | Student | Spending + balance |
+| `/api/vendor/pay` | POST | Vendor | Accept payment |
+| `/api/admin/stats` | GET | Admin | System totals |
 
 ## Tech Stack
 
 | Layer | Tech |
 |-------|------|
 | Blockchain | Algorand Testnet |
-| Smart Contracts | PyTeal (TEAL v8) |
+| Smart Contracts | PyTeal |
 | Token | ASA (CampusToken) |
 | Backend | Python, Flask, py-algorand-sdk |
+| Frontend | Next.js 14, TypeScript |
 | Database | SQLite |
 | Auth | JWT |
 

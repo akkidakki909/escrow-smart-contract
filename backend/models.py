@@ -1,5 +1,8 @@
 """
 CampusChain Backend — Database Models (SQLite)
+
+CUSTODIAL MODEL: The backend stores wallet mnemonics and signs all
+transactions on behalf of users. No user ever needs crypto or wallet software.
 """
 
 import sqlite3
@@ -26,6 +29,7 @@ def init_db():
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK(role IN ('student', 'parent', 'vendor', 'admin')),
             algo_address TEXT,
+            algo_mnemonic TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -62,10 +66,15 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        -- Track processed blockchain txns to avoid double-counting
-        CREATE TABLE IF NOT EXISTS processed_txns (
-            txn_id TEXT PRIMARY KEY,
-            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        -- Individual transactions stored for student view, never exposed to parents
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL REFERENCES users(id),
+            vendor_id INTEGER REFERENCES vendors(id),
+            amount INTEGER NOT NULL,
+            category TEXT NOT NULL CHECK(category IN ('food', 'events', 'stationery')),
+            txn_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
     conn.commit()

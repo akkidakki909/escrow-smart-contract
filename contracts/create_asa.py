@@ -6,7 +6,10 @@ Creates the CampusToken ASA on Algorand Testnet.
 from algosdk import account, mnemonic, transaction
 from algosdk.v2client import algod
 import json
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 # ---------- Configuration ----------
 ALGOD_ADDRESS = os.getenv("ALGOD_ADDRESS", "https://testnet-api.algonode.cloud")
