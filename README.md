@@ -1,4 +1,4 @@
-# CampusChain 🎓⛓️
+# CampusChain 
 
 > Programmable Campus Wallet System on Algorand Testnet — **Custodial Model**
 
@@ -68,11 +68,26 @@ Parents don't see: ❌ Individual transactions, ❌ Merchant names, ❌ Timestam
 |----------|--------|------|-------------|
 | `/api/auth/register` | POST | — | Register (auto wallet) |
 | `/api/auth/login` | POST | — | Login → JWT |
-| `/api/parent/fund` | POST | Parent | Fund student |
-| `/api/parent/spending` | GET | Parent | Aggregated only |
-| `/api/student/summary` | GET | Student | Spending + balance |
-| `/api/vendor/pay` | POST | Vendor | Accept payment |
-| `/api/admin/stats` | GET | Admin | System totals |
+| `/api/student/balance` | GET | Student | CampusToken balance |
+| `/api/student/pay` | POST | Student | Pay vendor (category-tagged) |
+| `/api/parent/fund` | POST | Parent | Simulate UPI → mint tokens |
+| `/api/parent/spending` | GET | Parent | **Aggregated** spending only |
+| `/api/vendor/register` | POST | Vendor | Register + set category |
+| `/api/vendor/qr` | GET | Vendor | Payment QR data |
+
+## Privacy Model
+
+Parents see:
+- ✅ Total monthly spending
+- ✅ Spending per category (food, events, stationery)
+- ✅ Remaining balance
+
+Parents do NOT see:
+- ❌ Individual transactions
+- ❌ Merchant names
+- ❌ Timestamps / time-level details
+
+This is enforced by the **backend aggregation layer** — see `ARCHITECTURE.md` §5.
 
 ## Tech Stack
 
