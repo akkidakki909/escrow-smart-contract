@@ -1,4 +1,4 @@
-# CampusChain 🎓⛓️
+# CampusChain 
 
 > Programmable Campus Wallet System on Algorand Testnet
 
@@ -74,14 +74,14 @@ Server runs at `http://localhost:5000`.
 ## Privacy Model
 
 Parents see:
-- ✅ Total monthly spending
-- ✅ Spending per category (food, events, stationery)
-- ✅ Remaining balance
+- Total monthly spending
+- Spending per category (food, events, stationery)
+- Remaining balance
 
 Parents do NOT see:
-- ❌ Individual transactions
-- ❌ Merchant names
-- ❌ Timestamps / time-level details
+- Individual transactions
+- Merchant names
+- Timestamps / time-level details
 
 This is enforced by the **backend aggregation layer** — see `ARCHITECTURE.md` §5.
 
